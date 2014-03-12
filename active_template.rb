@@ -14,9 +14,14 @@ puts '*' * 40
 puts "* Processing template..."
 puts '*' * 40
 
-use_git = yes?("Do you use git ?")
+test_mode = nil
+ARGV.each{|arg| test_mode = true if arg  == "test_mode"}
+puts "**** Starting in test mode! ****" if test_mode
+
+use_git = test_mode || yes?("Do you use git ?")
 if use_git
   git :init
+  remove_file ".gitignore"
   file ".gitignore", <<-EOS.gsub(/^    /, '')
     # See http://help.github.com/ignore-files/ for more about ignoring files.
     #
@@ -45,7 +50,7 @@ gem "active_leonardo"
 gem "jquery-turbolinks"
 gem "bourbon"
 
-easy_develop = yes?("Do you want to make development easier?")
+easy_develop = test_mode || yes?("Do you want to make development easier?")
 if easy_develop
   gem "rack-mini-profiler", :group => :development
   gem "better_errors", :group => :development
@@ -54,24 +59,11 @@ end
 
 #use_editor = yes?("Do you want a wysihtml editor?")
 #if use_editor
-#  gem 'activeadmin-dragonfly',  git: 'http://192.30.252.131/stefanoverna/activeadmin-dragonfly'
-#  gem 'activeadmin-wysihtml5',  git: 'http://192.30.252.131/stefanoverna/activeadmin-wysihtml5'
-#end
-
-easy_develop = yes?("Do you want to make development easier?")
-if easy_develop
-  gem "rack-mini-profiler"
-  gem "jquery-turbolinks"
-  gem "awesome_print"
-end
-
-#use_editor = yes?("Do you want a wysihtml editor?")
-#if use_editor
 #  gem 'activeadmin-dragonfly', git: 'https://github.com/stefanoverna/activeadmin-dragonfly'
 #  gem 'activeadmin-wysihtml5', git: 'https://github.com/stefanoverna/activeadmin-wysihtml5'
 #end
 
-rspec = yes?("Add rspec as testing framework ?")
+rspec = test_mode || yes?("Add rspec as testing framework ?")
 if rspec
   gem 'rspec-rails', :group => [:test, :development]
   gem 'capybara', :group => :test
@@ -85,11 +77,11 @@ if rspec
   end
 end
 
-authentication = yes?("Authentication ?")
+authentication = test_mode || yes?("Authentication ?")
 model_name = authorization = nil
 if authentication
   default_model_name = "User"
-  model_name = ask(" Insert model name: [#{default_model_name}]")
+  model_name = test_mode ? "" : ask(" Insert model name: [#{default_model_name}]")
   if model_name.empty? || model_name == 'y'
     model_name = default_model_name
   else
@@ -104,19 +96,19 @@ if authentication
     p stdout
   end
 
-authorization = yes?("Authorization ?")
+  authorization = test_mode || yes?("Authorization ?")
   if authorization
     gem "cancan"
   end
 end
 
-gem 'state_machine' if yes?("Do you have to handle states ?")
+gem 'state_machine' if test_mode || yes?("Do you have to handle states ?")
 
-dashboard_root = yes?("Would you use dashboard as root ? (recommended)")
-home = yes?("Ok. Would you create home controller as root ?") unless dashboard_root
+dashboard_root = test_mode || yes?("Would you use dashboard as root ? (recommended)")
+home = test_mode || yes?("Ok. Would you create home controller as root ?") unless dashboard_root
 
-if yes?("Bundle install ?")
-  dir = ask(" Insert folder name to install locally: [blank=default gems path]")
+if test_mode || yes?("Bundle install ?")
+  dir = test_mode ? "" : ask(" Insert folder name to install locally: [blank=default gems path]")
   run "bundle install #{"--path=#{dir}" unless dir.empty? || dir=='y'}"
 end
 
@@ -134,7 +126,8 @@ generate  "leolay",
           "--auth_class=#{model_name}",
           (rspec ? nil : "--skip-rspec"),
           (authorization ? nil : "--skip-authorization"),
-          (authentication ? nil : "--skip-authentication")
+          (authentication ? nil : "--skip-authentication"),
+          (test_mode ? "--no-verbose" : nil)
 
 
 if dashboard_root
