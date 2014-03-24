@@ -15,11 +15,44 @@ puts "* Processing template..."
 puts '*' * 40
 
 test_mode = nil
+puts '-'*80, '';
+puts "Answers: #{ARGV[3]}"
+puts "use_git        #{ARGV[3][0]}"
+puts "easy_develop   #{ARGV[3][1]}"
+puts "rspec          #{ARGV[3][2]}"
+puts "authentication #{ARGV[3][3]}"
+puts "authorization  #{ARGV[3][4]}"
+puts "handle_states  #{ARGV[3][5]}"
+puts "dashboard_root #{ARGV[3][6]}"
+puts "home           #{ARGV[3][7]}"
+puts "bundle_install #{ARGV[3][8]}"
+puts '-'*80, ''; sleep 0.25
 ARGV.each{|arg| test_mode = true if arg  == "test_mode"}
 app_path = ARGV[0]
 puts "**** Starting app into #{app_path} in test mode! ****" if test_mode
 
-use_git = test_mode || yes?("Do you use git ?")
+## -------- QUESTIONS ---------
+if ARGV[3]
+  use_git        = ARGV[3][0]
+  easy_develop   = ARGV[3][1]
+  rspec          = ARGV[3][2]
+  authentication = ARGV[3][3]
+  authorization  = ARGV[3][4]
+  handle_states  = ARGV[3][5]
+  dashboard_root = ARGV[3][6]
+  home           = ARGV[3][7]
+  bundle_install = ARGV[3][8]
+else
+  use_git        = test_mode || yes?("Do you use git ?")
+  easy_develop   = test_mode || yes?("Do you want to make development easier?")
+  rspec          = test_mode || yes?("Add rspec as testing framework ?")
+  authentication = test_mode || yes?("Authentication ?")
+  authorization  = test_mode || yes?("Authorization ?")
+  handle_states  = test_mode || yes?("Do you have to handle states ?")
+  dashboard_root = test_mode || yes?("Would you use dashboard as root ? (recommended)")
+  home           = test_mode || yes?("Ok. Would you create home controller as root ?") unless dashboard_root
+  bundle_install = test_mode || yes?("Bundle install ?")
+end
 
 if use_git
   git :init
@@ -47,7 +80,7 @@ if use_git
   EOS
 end
 
-gem "activeadmin",              git: 'http://github.com/gregbell/active_admin.git'
+gem "activeadmin",    git: 'http://github.com/gregbell/active_admin.git'
 if test_mode
   gem "active_leonardo", :path => "../../."
 else
@@ -56,10 +89,10 @@ end
 gem "jquery-turbolinks"
 gem "bourbon"
 
-easy_develop = test_mode || yes?("Do you want to make development easier?")
 if easy_develop
   gem "rack-mini-profiler", :group => :development
   gem "better_errors",      :group => :development
+  gem "binding_of_caller",  :group => :development
   gem "awesome_print",      :group => :development
 end
 
@@ -69,7 +102,6 @@ end
 #  gem 'activeadmin-wysihtml5', git: 'https://github.com/stefanoverna/activeadmin-wysihtml5'
 #end
 
-rspec = test_mode || yes?("Add rspec as testing framework ?")
 if rspec
   gem 'rspec-rails',                    :group => [:test, :development]
   gem 'capybara',                       :group => :test
@@ -82,12 +114,26 @@ if rspec
     gem 'factory_girl_rails',           :group => :test
   end
 end
+gem "cancan"        if authorization
+gem 'state_machine' if handle_states
 
-authentication = test_mode || yes?("Authentication ?")
+if bundle_install
+  if ARGV[3]
+    dir = ""
+  else
+    dir = test_mode ? "" : ask(" Insert folder name to install locally: [blank=default gems path]")
+  end
+  run "bundle install #{"--path=#{dir}" unless dir.empty? || dir=='y'}"
+end
+
 model_name = authorization = nil
 if authentication
   default_model_name = "User"
-  model_name = test_mode ? "" : ask(" Insert model name: [#{default_model_name}]")
+  if ARGV[3]
+    model_name = ""
+  else
+    model_name = test_mode ? "" : ask(" Insert model name: [#{default_model_name}]")
+  end
   if model_name.empty? || model_name == 'y'
     model_name = default_model_name
   else
@@ -101,21 +147,6 @@ if authentication
     REMEM
     p stdout
   end
-
-  authorization = test_mode || yes?("Authorization ?")
-  if authorization
-    gem "cancan"
-  end
-end
-
-gem 'state_machine' if test_mode || yes?("Do you have to handle states ?")
-
-dashboard_root = test_mode || yes?("Would you use dashboard as root ? (recommended)")
-home = test_mode || yes?("Ok. Would you create home controller as root ?") unless dashboard_root
-
-if test_mode || yes?("Bundle install ?")
-  dir = test_mode ? "" : ask(" Insert folder name to install locally: [blank=default gems path]")
-  run "bundle install #{"--path=#{dir}" unless dir.empty? || dir=='y'}"
 end
 
 generate "rspec:install" if rspec
@@ -147,7 +178,6 @@ rake "db:create:all"
 rake "db:migrate"
 rake "db:seed"
 
-#rake "gems:unpack" if yes?("Unpack to vendor/gems ?")
 if use_git
   git :add => "."
   git :commit => %Q{ -m "Initial commit" }
