@@ -9,51 +9,57 @@
 # -------------------------------------------------------
 #
 #########################################################
-
-puts '*' * 40
-puts "* Processing template..."
-puts '*' * 40
+ANSWERS = ARGV[3]
+puts '*' * 80
+say("* Processing template...", :red)
+puts '*' * 80
 
 test_mode = nil
-puts '-'*80, '';
-puts "Answers: #{ARGV[3]}"
-puts "use_git        #{ARGV[3][0]}"
-puts "easy_develop   #{ARGV[3][1]}"
-puts "rspec          #{ARGV[3][2]}"
-puts "authentication #{ARGV[3][3]}"
-puts "authorization  #{ARGV[3][4]}"
-puts "handle_states  #{ARGV[3][5]}"
-puts "dashboard_root #{ARGV[3][6]}"
-puts "home           #{ARGV[3][7]}"
-puts "bundle_install #{ARGV[3][8]}"
-puts '-'*80, ''; sleep 0.25
 ARGV.each{|arg| test_mode = true if arg  == "test_mode"}
 app_path = ARGV[0]
-puts "**** Starting app into #{app_path} in test mode! ****" if test_mode
+say_status("**** Starting app into #{app_path} in test mode! ****\n")  if test_mode
+#puts "**** Starting app into #{app_path} in test mode! ****" if test_mode
 
-## -------- QUESTIONS ---------
-if ARGV[3]
-  use_git        = ARGV[3][0]
-  easy_develop   = ARGV[3][1]
-  rspec          = ARGV[3][2]
-  authentication = ARGV[3][3]
-  authorization  = ARGV[3][4]
-  handle_states  = ARGV[3][5]
-  dashboard_root = ARGV[3][6]
-  home           = ARGV[3][7]
-  bundle_install = ARGV[3][8]
-else
-  use_git        = test_mode || yes?("Do you use git ?")
-  easy_develop   = test_mode || yes?("Do you want to make development easier?")
-  rspec          = test_mode || yes?("Add rspec as testing framework ?")
-  authentication = test_mode || yes?("Authentication ?")
-  authorization  = test_mode || yes?("Authorization ?")
-  handle_states  = test_mode || yes?("Do you have to handle states ?")
-  dashboard_root = test_mode || yes?("Would you use dashboard as root ? (recommended)")
-  home           = test_mode || yes?("Ok. Would you create home controller as root ?") unless dashboard_root
-  bundle_install = test_mode || yes?("Bundle install ?")
+if ANSWERS && !test_mode
+  puts '*'*80, '';
+  puts "Answers:       #{ANSWERS}"
+  puts "use_git        #{ANSWERS[0]}"
+  puts "easy_develop   #{ANSWERS[1]}"
+  puts "rspec          #{ANSWERS[2]}"
+  puts "authentication #{ANSWERS[3]}"
+  puts "authorization  #{ANSWERS[4]}"
+  puts "handle_states  #{ANSWERS[5]}"
+  puts "dashboard_root #{ANSWERS[6]}"
+  puts "home           #{ANSWERS[7]}"
+  puts "bundle_install #{ANSWERS[8]}"
+  puts '*'*80, ''; sleep 0.25
 end
 
+## -------- QUESTIONS ---------
+if ANSWERS
+  use_git        = ANSWERS[0]
+  easy_develop   = ANSWERS[1]
+  rspec          = ANSWERS[2]
+  authentication = ANSWERS[3]
+  authorization  = ANSWERS[4]
+  handle_states  = ANSWERS[5]
+  dashboard_root = ANSWERS[6]
+  home           = ANSWERS[7]
+  bundle_install = ANSWERS[8]
+else
+  use_git        = test_mode || yes?("Do you use git ?", :blue)
+  easy_develop   = test_mode || yes?("Do you want to make development easier?", :blue)
+  rspec          = test_mode || yes?("Add rspec as testing framework ?", :blue)
+  authentication = test_mode || yes?("Authentication ?", :blue)
+  authorization  = test_mode || yes?("Authorization ?", :blue)
+  handle_states  = test_mode || yes?("Do you have to handle states ?", :blue)
+  dashboard_root = test_mode || yes?("Would you use dashboard as root ? (recommended)", :blue)
+  home           = test_mode || yes?("Ok. Would you create home controller as root ?", :blue) unless dashboard_root
+  bundle_install = test_mode || yes?("Bundle install ?", :blue)
+end
+
+puts '*' * 80
+say("* Configuring git...", :red)
 if use_git
   git :init
   remove_file ".gitignore"
@@ -79,7 +85,10 @@ if use_git
     /config/initializers/secret_token.rb
   EOS
 end
+puts '*' * 80; sleep 0.5
 
+puts '*' * 80
+say("* Adding gems...", :red)
 gem "activeadmin",    git: 'http://github.com/gregbell/active_admin.git'
 if test_mode
   gem "active_leonardo", :path => "../../."
@@ -93,14 +102,9 @@ if easy_develop
   gem "rack-mini-profiler", :group => :development
   gem "better_errors",      :group => :development
   gem "binding_of_caller",  :group => :development
+  gem "quiet_assets",       :group => :development
   gem "awesome_print",      :group => :development
 end
-
-#use_editor = yes?("Do you want a wysihtml editor?")
-#if use_editor
-#  gem 'activeadmin-dragonfly', git: 'https://github.com/stefanoverna/activeadmin-dragonfly'
-#  gem 'activeadmin-wysihtml5', git: 'https://github.com/stefanoverna/activeadmin-wysihtml5'
-#end
 
 if rspec
   gem 'rspec-rails',                    :group => [:test, :development]
@@ -114,22 +118,30 @@ if rspec
     gem 'factory_girl_rails',           :group => :test
   end
 end
+
 gem "cancan"        if authorization
 gem 'state_machine' if handle_states
+puts '*' * 80; sleep 0.5
 
+
+puts '*' * 80
+say("* Bundle install...", :red)
 if bundle_install
-  if ARGV[3]
+  if ANSWERS
     dir = ""
   else
     dir = test_mode ? "" : ask(" Insert folder name to install locally: [blank=default gems path]")
   end
   run "bundle install #{"--path=#{dir}" unless dir.empty? || dir=='y'}"
 end
+puts '*' * 80; sleep 0.5
 
+puts '*' * 80
+say("* Starting generators...", :red)
 model_name = authorization = nil
 if authentication
   default_model_name = "User"
-  if ARGV[3]
+  if ANSWERS
     model_name = ""
   else
     model_name = test_mode ? "" : ask(" Insert model name: [#{default_model_name}]")
@@ -157,30 +169,37 @@ if authorization
   generate "cancan:ability"
   generate "migration", "AddRolesMaskTo#{model_name}", "roles_mask:integer"
 end
+puts '*' * 80; sleep 0.5
 
+puts '*' * 80
+say("* Starting leolay...", :red)
 generate  "leolay",
           "active", #specify theme
           "--auth_class=#{model_name}",
           (rspec ? nil : "--skip-rspec"),
           (authorization ? nil : "--skip-authorization"),
           (authentication ? nil : "--skip-authentication"),
-          (test_mode ? "--no-verbose" : nil)
+          (test_mode || ANSWERS ? "--no-verbose" : nil)
+puts '*' * 80; sleep 0.5
 
-
+puts '*' * 80
+say("* Last settings, migration and seeding...", :red)
 if dashboard_root
   route "root :to => 'admin/dashboard#index'"
 elsif home
   generate "controller", "home", "index"
   route "root :to => 'home#index'"
 end
-
 rake "db:create:all"
 rake "db:migrate"
 rake "db:seed"
+puts '*' * 80; sleep 0.5
 
+puts '*' * 80
+say("* Committing...", :red)
 if use_git
   git :add => "."
   git :commit => %Q{ -m "Initial commit" }
 end
-
+puts '*' * 80; sleep 0.5
 puts "ENJOY!"
