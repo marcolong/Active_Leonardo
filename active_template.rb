@@ -90,8 +90,11 @@ puts '*' * 80; sleep 0.5
 puts '*' * 80
 say("* Adding gems...", :red)
 gem "activeadmin",    git: 'http://github.com/gregbell/active_admin.git'
+#DAFARE trovare una soluzione alternativa per LeonardoUI
 if test_mode
   gem "active_leonardo", :path => "../../."
+elsif ANSWERS
+  gem "active_leonardo", git: 'http://github.com/marcomd/active_leonardo.git'
 else
   gem "active_leonardo"
 end
@@ -179,7 +182,7 @@ generate  "leolay",
           (rspec ? nil : "--skip-rspec"),
           (authorization ? nil : "--skip-authorization"),
           (authentication ? nil : "--skip-authentication"),
-          (test_mode || ANSWERS ? "--no-verbose" : nil)
+          ((test_mode || ANSWERS) ? "--no-verbose" : nil)
 puts '*' * 80; sleep 0.5
 
 puts '*' * 80
